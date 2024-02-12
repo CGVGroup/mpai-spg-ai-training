@@ -18,27 +18,34 @@ def normalize_df(df,minimum,maximum):
 
       
     
-def single_care_dataframe(path):
-    df_gara=pd.read_csv(path, sep=";", header=None , decimal=',',names=COLUMNS)
-    #create new column called race
+def single_care_dataframe(path,ColumnsToRead,DiscardColumns):
+    #Read from CSV file
+    df_gara=pd.read_csv(path, sep=";", header=None , decimal=',',names=ColumnsToRead)
+    #Drop the columns about the Input (we did not use this information)
+    df_gara=df_gara.drop(DiscardColumns,axis=1).reset_index(drop=True)
+    #create new column called race, in the CSV file a new race is identified by the '_' chara
     df_gara["RACE"]=0
     # fill race column based on the cumulative sum of rows starting with '_'
-    #idx_gara stores each row wich starts with '_'
+    #idx_gara stores each row which starts with '_'
     idx_gara=(df_gara[df_gara["Player"].str.startswith("_")].index)
-    df_gara.loc[idx_gara,"Player"]=df_gara.loc[idx_gara,"Player"].str.replace("_","")#replace name without the _
-
+    #delete the '_' from the name
+    df_gara.loc[idx_gara,"Player"]=df_gara.loc[idx_gara,"Player"].str.replace("_","")
     df_gara.loc[idx_gara,"RACE"]=1
     df_gara.RACE=df_gara.RACE.cumsum()
     #Create new column Length wich specifiens the total length of a race
     df_gara["LENGTH"]=df_gara.groupby("RACE")["Player"].transform("count")
-    #if race is lewer then a minimum then it is discarded
+    #if race is lower then a minimum then it is discarded
     df_races=df_gara.query(f"LENGTH > {SEQUENCE_LENGTH*DISCARD+1}").reset_index(drop=True)
     df_races.drop(["Player","LENGTH"],axis=1,inplace=True)
 
+    #Divide into three set based on the Race column
     train,val,test = split_train_validation_test(
         df_races,
         "RACE"
     ) 
+
+    #Discard value divides into a number of group equal to Discard, where in each group
+    #the time distance between two consecutive element is equal to .02*Discard
     df_train= divide_into_groups(train)
     df_val= divide_into_groups(val)
     df_test= divide_into_groups(test)
@@ -87,18 +94,6 @@ def split_train_validation_test(df,group_col,train_split=0.5,val_split=0.25,test
     df_val=df.loc[(df['RACE'] >= races*train_split) & (df['RACE'] < races*val_split)]
     df_test=df.loc[df['RACE'] >= races*val_split]
     
-    #group by race (and player name for single car) and create a new array containing foreach race a dataset
-    #df_train= df.groupby(group_col,group_keys=False).apply(get_split, first = 0, second= train_split)
-    #df_val= df.groupby(group_col,group_keys=False).apply(get_split, first = train_split, second= val_split)
-    #df_test= df.groupby(group_col,group_keys=False).apply(get_split, first = val_split, second= 1)
-    #
-    #
-    ##since each race was plittend into train,val and test the result of previous operation is an array containing the data 
-    ##foreach race, therefore to have the end dataframe we must concatenate each element
-    #df_train=recreate_dataframe(df_train)
-    #df_val=recreate_dataframe(df_val)
-    #df_test=recreate_dataframe(df_test)
-    
     return df_train, df_val,df_test
 
 def recreate_dataframe(series):
@@ -113,12 +108,12 @@ def recreate_dataframe(series):
     #    df= pd.concat([df, pd.DataFrame(serie,columns=columns)],ignore_index=True)
     return df
 
+ #create a new df with sequence_length elements for batch_size times
 def batch_generator(df):
     
-    #crea un nuovo dataframe con sequence_length elementi per un numero di volte pari al batch
+    #delete columns not used for the input
     dropped_df=df.drop(["TIME","RACE","GROUP","X","Z","ANG_VEL_Y","ACC_X","ACC_Z"],axis=1).reset_index(drop=True)
-    #dropped_df["ROT"]=dropped_df["ROT"]/360.0;
-    #target_df=dropped_df.drop(["TILE","TILE_IND","X_RELATIVE","Z_RELATIVE"],axis=1).reset_index(drop=True)
+    #delete columns not used for the output
     target_df=dropped_df.drop(["TILE"],axis=1).reset_index(drop=True)
    
     #dropped_df=dropped_df.drop([ "VEL_X","VEL_Z","ROT"],axis=1).reset_index(drop=True)
@@ -130,7 +125,7 @@ def batch_generator(df):
         
 def countSize(df):
     return len(df.reset_index(drop=True))-SEQUENCE_LENGTH
-        
+   
 def Generator(df):
     grouped=df.groupby(["RACE","GROUP"],group_keys=False).apply(batch_generator)
     for group in grouped:
