@@ -38,7 +38,7 @@ def LSTM_Model(droupout_rate,
             
     return tf.keras.models.Model(inputs=inputs,outputs=outputs,name=f"LSTM_NN{cells}")
 
-    
+#We tried using a CNN & LSTM model but  
 def CNN_LSTM_Model(droupout_rate, units=32,filters=32,kernel_size=3,pool_size=1,normalization=False):
     
     inputs=tf.keras.Input(shape=(sequence_length,cars*features))
@@ -54,8 +54,8 @@ def CNN_LSTM_Model(droupout_rate, units=32,filters=32,kernel_size=3,pool_size=1,
     outputs=layers.Dense(feat_pred*cars,activation="linear")(x)
             
     return tf.keras.models.Model(inputs=inputs,outputs=outputs,name=f"CNN{filters}_{kernel_size}LSTM{units}")
-##Training functions 
 
+##Training functions 
 def compile_and_fit(model, train,val, patience=5, epochs=10, learning_rate=0.01, summary=False, verbose=0,name="logs",path="logs"):
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                                     patience=patience,

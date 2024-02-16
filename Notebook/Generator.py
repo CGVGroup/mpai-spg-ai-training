@@ -45,7 +45,7 @@ def single_care_dataframe(path,ColumnsToRead,DiscardColumns):
     ) 
 
     #Discard value divides into a number of group equal to Discard, where in each group
-    #the time distance between two consecutive element is equal to .02*Discard
+    #the time distance between two consecutive element is equal to .02*(Discard+1)
     df_train= divide_into_groups(train)
     df_val= divide_into_groups(val)
     df_test= divide_into_groups(test)
@@ -57,7 +57,7 @@ def divide_into_groups(df_x):
     dfs=[]
     for i in range(DISCARD+1):
         df["GROUP"]=i
-        temp=df.iloc[i::DISCARD+1]
+        temp=df.iloc[i::DISCARD+1] #Discard skips a consecutive number of elements thus manually increasing the time distance between two consecutive elements of the same group
         temp.reset_index(drop=True,inplace=True)
         dfs.append(temp)
     return dfs
@@ -100,23 +100,16 @@ def recreate_dataframe(series):
     columns=C_NoPLayer 
     series.columns=columns
     df=series.reset_index(drop=True)
-    #v#alues=series.values
-    #df=pd.DataFrame(values[0],columns=columns)
-    #
-#
-    #for serie in values[1:]:
-    #    df= pd.concat([df, pd.DataFrame(serie,columns=columns)],ignore_index=True)
     return df
 
- #create a new df with sequence_length elements for batch_size times
+#create a new df with sequence_length elements for batch_size times
 def batch_generator(df):
     
     #delete columns not used for the input
     dropped_df=df.drop(["TIME","RACE","GROUP","X","Z","ANG_VEL_Y","ACC_X","ACC_Z"],axis=1).reset_index(drop=True)
     #delete columns not used for the output
-    target_df=dropped_df.drop(["TILE"],axis=1).reset_index(drop=True)
+    target_df=df.drop(["TIME","RACE","GROUP","ANG_VEL_Y","ACC_X","ACC_Z","TILE","TILE_IND","X_RELATIVE","Z_RELATIVE"],axis=1).reset_index(drop=True)
    
-    #dropped_df=dropped_df.drop([ "VEL_X","VEL_Z","ROT"],axis=1).reset_index(drop=True)
     for i in range(len(dropped_df)-SEQUENCE_LENGTH):
         inputs=np.array(dropped_df.loc[i:SEQUENCE_LENGTH-1+i,:].values)
         targets=target_df.iloc[SEQUENCE_LENGTH+i,:].values
