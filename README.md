@@ -22,3 +22,5 @@ As described in the notebook NotebookTraining.ipynb, The database contains the f
 Whenever the "Player ID" has the '_' character at the start of the name, it means a new race has started.
 The "Tile ID" field specifies the type of tile (turn left, turn right etc.). Each unique tile is associated with a different integer number that creates the "Tile ID".
 The race track can be seen as an array of tiles. "Tile Ranking" correspond to the index of the race track array associated with the tile.
+
+NotebookTraining.ipynb contains the code for training the models, while Models.py describes how the models are created.
